@@ -31,9 +31,9 @@ class GeneratorFactory(object):
         pass
 
     @staticmethod
-    def get_generator(type):
+    def get_generator(type, loader_type):
         if type == FormatType.TFRECORD:
-            return TFRecordGenerator()
+            return TFRecordGenerator(loader_type)
         elif type == FormatType.HDF5:
             return HDF5Generator()
         elif type == FormatType.CSV:

@@ -20,7 +20,7 @@ import hydra
 import logging
 import pandas as pd
 from time import time
-import json 
+import json
 import numpy as np
 
 # Reduce TF and CUDA logging
@@ -68,7 +68,7 @@ class DLIOBenchmark(object):
             hydra_cfg = hydra.core.hydra_config.HydraConfig.get()
             self.args.output_folder = hydra_cfg['runtime']['output_dir']
         except:
-            self.args.output_folder = 'output/'         
+            self.args.output_folder = 'output/'
         self.output_folder = self.args.output_folder
         self.logfile = os.path.join(self.output_folder, self.args.log_file)
         self.data_folder = self.args.data_folder
@@ -98,7 +98,7 @@ class DLIOBenchmark(object):
             ],
             format='[%(levelname)s] %(message)s [%(pathname)s:%(lineno)d]'  # logging's max timestamp resolution is msecs, we will pass in usecs in the message
         )
- 
+
 
         if self.args.my_rank==0:
             logging.info(f"{utcnow()} Running DLIO with {self.args.comm_size} process(es)")
@@ -114,7 +114,7 @@ class DLIOBenchmark(object):
         self.num_files_train = self.args.num_files_train
         self.num_samples = self.args.num_samples_per_file
         self.total_training_steps = self.args.total_training_steps
-        
+
         self.epochs = self.args.epochs
         self.batch_size = self.args.batch_size
         self.computation_time = self.args.computation_time
@@ -126,21 +126,21 @@ class DLIOBenchmark(object):
             self.profiler = ProfilerFactory().get_profiler(self.args.profiler)
 
         if self.args.generate_data:
-            self.data_generator = GeneratorFactory.get_generator(self.args.format)
+            self.data_generator = GeneratorFactory.get_generator(self.args.format, self.args.data_loader)
 
         # Checkpointing support
         self.do_checkpoint = self.args.do_checkpoint
         self.steps_between_checkpoints = self.args.steps_between_checkpoints
         self.epochs_between_checkpoints = self.args.epochs_between_checkpoints
         self.checkpoint_after_epoch = self.args.checkpoint_after_epoch
-        
+
         # Evaluation support
         self.do_eval = self.args.do_eval
         self.num_files_eval = self.args.num_files_eval
 
         self.batch_size_eval = self.args.batch_size_eval
         self.eval_time = self.args.eval_time
-        self.eval_time_stdev = self.args.eval_time_stdev        
+        self.eval_time_stdev = self.args.eval_time_stdev
         self.eval_after_epoch = self.args.eval_after_epoch
         self.epochs_between_evals = self.args.epochs_between_evals
 
@@ -173,14 +173,14 @@ class DLIOBenchmark(object):
                 logging.info(f"{utcnow()} Profiling Started with {self.args.profiler}")
         self.framework.init_reader(self.args.format, self.args.data_loader)
         self.framework.barrier()
-    
+
     def _eval(self, epoch):
         """
         Evaluation loop will read a separate dataset and has its own own computation time.
         """
         step = 1
         total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
-        t0 = time() 
+        t0 = time()
         reader = self.framework.get_reader(DatasetType.VALID)
         for batch in reader.next():
             self.stats.eval_batch_loaded(epoch, step, t0)
@@ -195,7 +195,7 @@ class DLIOBenchmark(object):
             step += 1
             if step > total:
                 break
-                
+
             self.framework.barrier()
             t0 = time()
         return step - 1
@@ -218,7 +218,7 @@ class DLIOBenchmark(object):
             # Log a new block, unless it's the first one which we've already logged before the loop
             if block_step == 1 and block != 1:
                 self.stats.start_block(epoch, block)
-            
+
             if self.computation_time > 0:
                 self.framework.trace_object("Train", overall_step, 1)
                 if self.computation_time_stdev > 0:
@@ -247,7 +247,7 @@ class DLIOBenchmark(object):
                     logging.info(f"{utcnow()} Maximum number of steps reached")
                 if (block_step!=1 and self.do_checkpoint) or (not self.do_checkpoint):
                     self.stats.end_block(epoch, block, block_step-1)
-                break                
+                break
             overall_step += 1
             t0 = time()
 
@@ -262,7 +262,7 @@ class DLIOBenchmark(object):
 
     def run(self):
         """
-        Run the total epochs for training. 
+        Run the total epochs for training.
         On each epoch, it prepares dataset for reading, it trains, and finalizes the dataset.
         If evaluation is enabled, it reads the eval dataset, performs evaluation and finalizes.
         """
@@ -276,13 +276,13 @@ class DLIOBenchmark(object):
                 if self.do_eval:
                     total = math.floor(self.num_samples * self.num_files_eval / self.batch_size_eval / self.comm_size)
                     logging.info(f"{utcnow()} Steps per eval: {total} = {self.num_samples} * {self.num_files_eval} / {self.batch_size_eval} / {self.comm_size} (samples per file * num files / batch size eval / comm size)")
-            
+
             # Keep track of the next epoch at which we will evaluate
             next_eval_epoch = self.eval_after_epoch
             self.next_checkpoint_epoch = self.checkpoint_after_epoch
 
             for epoch in range(1, self.epochs + 1):
-                self.next_checkpoint_step = self.steps_between_checkpoints                
+                self.next_checkpoint_step = self.steps_between_checkpoints
                 self.stats.start_train(epoch)
                 # Initialize the dataset
                 self.framework.get_reader(dataset_type=DatasetType.TRAIN).read(epoch)
@@ -296,11 +296,11 @@ class DLIOBenchmark(object):
                     next_eval_epoch += self.epochs_between_evals
 
                     self.stats.start_eval(epoch)
-                
+
                     # Initialize the eval dataset
                     self.framework.get_reader(DatasetType.VALID).read(epoch)
                     self.framework.barrier()
-                    
+
                     self._eval(epoch)
                     self.stats.end_eval(epoch)
 
@@ -327,11 +327,11 @@ class DLIOBenchmark(object):
                     if self.storage.get_node(self.args.data_folder):
                         self.storage.delete_node(self.args.data_folder)
                         logging.info(f"{utcnow()} Deleted data files")
-            
+
             # Save collected stats to disk
             self.stats.finalize()
             self.stats.save_data()
-        self.framework.barrier()  
+        self.framework.barrier()
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg : DictConfig) -> None:

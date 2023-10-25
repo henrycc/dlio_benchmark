@@ -16,9 +16,10 @@
 """
 
 from src.data_generator.data_generator import DataGenerator
+from src.common.enumerations import DataLoaderType
 from numpy import random
 import tensorflow as tf
-
+import struct
 from src.utils.utility import progress, utcnow
 from shutil import copyfile
 
@@ -27,8 +28,36 @@ class TFRecordGenerator(DataGenerator):
     """
     Generator for creating data in TFRecord format.
     """
-    def __init__(self):
+    def __init__(self, loader_type):
         super().__init__()
+        self._loader_type = loader_type
+
+    def _tfrec2idx(self, tfrec_path, tfidx_path):
+        f = open(tfrec_path, 'rb')
+        idx = open(tfidx_path, 'w')
+
+        while True:
+            current = f.tell()
+            try:
+                # length
+                byte_len = f.read(8)
+                if len(byte_len) == 0:
+                    break
+                # crc
+                f.read(4)
+                proto_len = struct.unpack('q', byte_len)[0]
+                # proto
+                f.read(proto_len)
+                # crc
+                f.read(4)
+                idx.write(str(current) + ' ' + str(f.tell() - current) + '\n')
+            except Exception:
+                logging.error("Not a valid TFRecord file\n")
+                break
+
+        f.close()
+        idx.close()
+
     def generate(self):
         """
         Generator for creating data in TFRecord format of 3d dataset.
@@ -65,4 +94,7 @@ class TFRecordGenerator(DataGenerator):
                     serialized = example.SerializeToString()
                     # Write the serialized data to the TFRecords file.
                     writer.write(serialized)
+            if self._loader_type == DataLoaderType.DALITF:
+                idx_path = out_path_spec.rsplit('.', 1)[0] + ".idx"
+                self._tfrec2idx(out_path_spec, idx_path)
         random.seed()

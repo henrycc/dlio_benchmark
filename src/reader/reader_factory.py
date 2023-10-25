@@ -26,7 +26,7 @@ class ReaderFactory(object):
     @staticmethod
     def get_reader(type, data_loader, dataset_type):
         """
-        This function set the data reader based on the data format and the data loader specified. 
+        This function set the data reader based on the data format and the data loader specified.
         """
         if data_loader==DataLoaderType.NONE:
             if type == FormatType.HDF5:
@@ -50,6 +50,10 @@ class ReaderFactory(object):
                 return TFReader(dataset_type)
             from src.reader.tf_data_loader_reader import TFDataLoaderReader
             return TFDataLoaderReader(dataset_type)
+        elif data_loader == DataLoaderType.DALITF:
+            if type == FormatType.TFRECORD:
+                from src.reader.dali_tf_reader import DaliTFReader
+                return DaliTFReader(dataset_type)
         elif data_loader == DataLoaderType.PYTORCH:
             from src.reader.torch_data_loader_reader import TorchDataLoaderReader
             return TorchDataLoaderReader(dataset_type)

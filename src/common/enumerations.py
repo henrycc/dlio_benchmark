@@ -99,9 +99,10 @@ class DataLoaderType(Enum):
     Framework DataLoader Type
     """
     TENSORFLOW='tensorflow'
+    DALITF="dali-tensorflow"
     PYTORCH='pytorch'
     NONE='none'
-    
+
     def __str__(self):
         return self.value
 
@@ -130,9 +131,9 @@ class Shuffle(Enum):
 
 class ReadType(Enum):
     """
-    Type of read to be performed in the benchmark. 
+    Type of read to be performed in the benchmark.
     - On Demand: loading data in a batch-by-batch fashion
-    - In Memory: loading data all at once in the beginning. 
+    - In Memory: loading data all at once in the beginning.
     """
     IN_MEMORY = 'memory'
     ON_DEMAND = 'on_demand'
@@ -145,7 +146,7 @@ class FileAccess(Enum):
     File access mode.
     - Multi = save dataset into multiple files
     - Shared = save everything in a single file
-    - Collective = specific for the shared case, when we want to do collective I/O. Typically used for a huge file with small objects. 
+    - Collective = specific for the shared case, when we want to do collective I/O. Typically used for a huge file with small objects.
       One thread T reads from disk and the other threads read from T's memory, which is used as a cache.
     """
     MULTI = 'multi'
